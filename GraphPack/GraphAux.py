@@ -40,8 +40,8 @@ class Edge:
         return hash( (self._vertex1, self._vertex2) )
 
     def __str__(self):
-        '''Devolve a representação do objeto aresta em string: (origem, destino)w=peso '''
-        return'({0},{1})w={2}'.format(self._vertex1, self._vertex2, self._label)
+        return f'({self._vertex1},{self._vertex2},{self._label})'
+
 
     def __eq__(self, other):
         # define igualdade de duas arestas (deve ser consistente com a função hash)

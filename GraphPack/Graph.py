@@ -1,6 +1,7 @@
 from GraphPack.GraphAux import Vertex, Edge
 
 
+
 class Graph:
     '''
     Representação de um grafo usando dicionários encadeados (nested dictionaries).
@@ -26,19 +27,21 @@ class Graph:
             yield edge
 
     def __str__(self):
-        '''Devolve a representação do grafo em string (toString)'''
         if self._n == 0:
-            ret = "DAA-Graph: <empty>\n"
+            return "DAA-Graph: <empty>\n"
         else:
             ret = "DAA-Graph:\n"
-            ret += "directed: " + str(self._directed) +"\n"
-            for v in self._vertices.keys():
-                ret += "vertex "
-                ret += str(v) + ": "
-                for edge in self._incident_edges(v):
-                    ret += str(edge) + "; "
-                ret += "\n"
-        return ret
+            ret += "directed: " + str(self._directed) + "\n"
+            for v in self._vertices:
+                ret += f"vertex {v}: "
+                # Pegando todas as arestas de cada vértice
+                connections = []
+                for adj in self._vertices[v].values():
+                    for label, edge in adj.items():
+                        connections.append(str(edge))
+                ret += "; ".join(connections) + "\n"
+            return ret
+
 
     def is_directed(self):
         '''com base na criação original da instância, devolve True se o Grafo é dirigido; False senão '''
@@ -56,11 +59,22 @@ class Graph:
         """Verifica se o vértice v está no grafo."""
         return v in self._vertices
 
-    def has_edge(self, u, v, label):
+    def has_especificEdge(self, u, v, label):
         if not self.has_node(u) or not self.has_node(v):
             return False
         else:
-            return Vertex(v) in self._vertices[u].keys() and Vertex(v)
+            if (Vertex(v) in self._vertices[u].keys()):
+                if label in self._vertices[u][v]:
+                    return True
+                return False
+
+
+    def has_AnyEdge(self, u, v):
+        if not self.has_node(u) or not self.has_node(v):
+            return False
+        else:
+            return Vertex(v) in self._vertices[u].keys()
+
 
     def insert_vertex(self, x):
         '''Insere e devolve um novo vértice com o elemento x'''
@@ -70,21 +84,27 @@ class Graph:
         return v
 
     def insert_edge(self, u, v, label):
-        ''' Cria e insere uma nova aresta entre u e v com id (u,v,label) . '''
 
         e = Edge(u, v, label)
-
         if not self.has_node(u):
             self.insert_vertex(u)
         if not self.has_node(v):
             self.insert_vertex(v)
-        if not self.has_edge(u, v, label):
-            self._m +=1           # atualiza m apenas se a aresta ainda não existir no grafo
-        else:
-            print(f"existing edge {u} and {v}. Will only update weight")
 
-        self._vertices[u][v] = e  # coloca v nas adjacências de u
-        self._vertices[v][u] = e  # e u nas adjacências de v (para facilitar a procura de todas as arestas incidentes num vértice)
+        # Cria um sub-dicionário para rótulos se não existir
+        if v not in self._vertices[u]:
+            self._vertices[u][v] = {}
+        if u not in self._vertices[v]:
+            self._vertices[v][u] = {}
+
+        # Inserir a aresta se não houver uma com o mesmo rótulo
+        if label not in self._vertices[u][v]:
+            self._vertices[u][v][label] = e  # Aresta de u para v com label específica
+            if not self._directed:
+                self._vertices[v][u][label] = e  # Aresta de v para u com label específica
+            self._m += 1
+        else:
+            print(f"Edge ({u}, {v}, {label}) already exists.")
 
 
     def degree(self, v, outgoing=True):
@@ -103,14 +123,14 @@ class Graph:
                     count += 1
         return count
 
-    def get_edge(self, u, v):
-        '''Método interno: Devolve a aresta que liga u a v ou None se não forem adjacentes'''
-        edge = self._vertices[u].get(v)     # returns None se não existir aresta entre u e v
-        if edge and self._directed: # se é dirigido
-            x = edge.endpoints()        # vai confirmar se é o arco u --> v
-            if x[1] != v:
-                edge = None
-        return edge
+    def get_edge(self, u, v, label):
+        '''Método interno: Devolve a aresta que liga u a v com uma etiqueta específica ou None se não forem adjacentes ou a aresta com tal etiqueta não existir.'''
+        if u in self._vertices and v in self._vertices[u]:
+            edge_dict = self._vertices[u][v]
+            if label in edge_dict:
+                return edge_dict[label]
+        return None
+
 
     def vertices(self):
         '''Devolve um iterável sobre todos os vértices do Grafo'''
