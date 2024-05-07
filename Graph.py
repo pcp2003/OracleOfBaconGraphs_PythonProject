@@ -82,7 +82,8 @@ class Graph:
     def __init__(self, directed=False):
         '''Construtor: Cria um grafo vazio (dicionário de _vertices).'''
         self._vertices = {}         # dicionário com chave vértice e valor mapa de adjacência
-        self._edges = set()   # Set to store unique edge identifiers for quick lookup
+        self._edges = set()   # set com arestas unicas
+        self._labels = set()    # set com labels unicas
         self._n = 0                 # número de vértices do grafo
         self._m = 0                 # número de arestas do grafo
         self._directed = directed
@@ -153,6 +154,7 @@ class Graph:
         if edge_key not in self._edges:
 
             self._edges.add(edge_key)  # Adiciona ao set para um check-up rápido
+            self._labels.add(label)   # Adiciona ao set para um check-up rápido
 
             # Adiciona ao dicionário
             edge = Edge(u, v, label)
@@ -167,7 +169,7 @@ class Graph:
 
 
     def degree(self, v, outgoing=True):
-        
+
         '''Quantidade de arestas originárias ou incidentes no vértice v
            Se for um grafo dirigido, conta as arestas outgoing ou incoming,
            de acordo com o valor de outgoing (True or False)
@@ -223,7 +225,7 @@ class Graph:
                 x, y = i.endpoints()
                 self.remove_edge(x,y)
             del self._vertices[v]
-            self._n -=1
+            self._n -= 1
 
     def remove_edge(self, u, v, label):
         edge_key = (u.vertice(), v.vertice(), label)
@@ -246,6 +248,7 @@ class Graph:
         '''Gerador: indica todas as arestas incoming de v
            Se for um grafo dirigido e incoming for False, devolve as arestas outgoing
         '''
+
         for edge in self._vertices[v].values(): # para todas as arestas relativas a v:
             if not self._directed:
                 yield edge
@@ -256,11 +259,12 @@ class Graph:
 
     def get_OutNeighbors(self, v):
         neighbors_list = []
+
         for edge in self.incident_edges(v):
-            if edge._ant not in neighbors_list and edge._ant != v:
-                neighbors_list.append(edge._ant)
-            elif edge._suc not in neighbors_list and edge._suc != v:
-                neighbors_list.append(edge._suc)
+            if edge.get_ant() not in neighbors_list and edge.get_ant() != v:
+                neighbors_list.append(edge.get_ant())
+            elif edge.get_suc() not in neighbors_list and edge.get_suc() != v:
+                neighbors_list.append(edge.get_suc())
 
         #sort by number of the vertix
         return sorted(neighbors_list, key=lambda x: (x._elemento))

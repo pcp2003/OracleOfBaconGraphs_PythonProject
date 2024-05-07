@@ -1,44 +1,79 @@
+from collections import deque
+
 from Graph import Graph, Vertex
 
 
 class HollywoodOracle:
 
+
     def __init__(self, filename):
 
-        self.build_graph_from_file(filename)
+        self._graph = FileManager.build_graph_from_file(filename)
+        self._distances = SearchAlgorithim.bfs(self._graph, "Fitz-Gerald, Lewis")
+
+    def all_movies(self):
+        return self._graph._labels
 
 
+
+# classe estática responsável por administrar o conteúdo dos DataSets
+class FileManager:
+
+    @staticmethod
     def build_graph_from_file(filename):
-        """
-        Constrói um grafo a partir de um arquivo de texto com dados de filmes e atores.
-
-        Parâmetros:
-        filename (str): O caminho para o arquivo .txt contendo os dados.
-
-        Retorna:
-        Graph: O objeto grafo construído com atores como vértices e filmes como arestas.
-        """
         graph = Graph()
-        with open(filename, 'r') as file:
-            for line in file:
-                parts = line.strip().split('/')
-                if len(parts) < 2:
-                    continue  # Ignora linhas sem atores suficientes ou mal formatadas
-                movie = parts[0].strip()
-                actors = [part.strip() for part in parts[1:]]
+        vertex_map = {}  # Cache vertex objects to avoid duplicate creation
 
-                # Adiciona cada ator ao grafo como um vértice (se ainda não estiver presente)
-                for actor in actors:
-                    if not graph.has_node(Vertex(actor)):
-                        graph.insert_vertex(actor)
+        try:
+            with open(filename, 'r', encoding='utf-8') as file:
+                for line in file:
+                    parts = line.strip().split('/')
+                    if len(parts) < 2:
+                        continue
+                    movie = parts[0].strip()
+                    actors = set(part.strip() for part in parts[1:])
 
-                # Adiciona uma aresta entre cada par de atores para este filme
-                for i in range(len(actors)):
-                    for j in range(i + 1, len(actors)):
-                        actor1 = Vertex(actors[i])
-                        actor2 = Vertex(actors[j])
-                        # Verifica se já existe uma aresta para esse filme entre os dois atores
-                        if not graph.has_especificEdge(actor1, actor2, movie):
-                            graph.insert_edge(actor1, actor2, movie)
+                    for actor in actors:
+                        if actor not in vertex_map:
+                            vertex_map[actor] = graph.insert_vertex(actor)
+
+                    actor_list = [vertex_map[actor] for actor in actors]
+                    for i in range(len(actor_list)):
+                        for j in range(i + 1, len(actor_list)):
+                            if not graph.has_especificEdge(actor_list[i], actor_list[j], movie):
+                                graph.insert_edge(actor_list[i], actor_list[j], movie)
+        except MemoryError:
+            print("Memory Error")
 
         return graph
+
+
+class SearchAlgorithim:
+
+    #Define por omissão "Bacon, Kevin", como centro do universo!
+    @staticmethod
+    def bfs(graph, start_vertex=None):
+
+        if not start_vertex:
+            start_vertex = "Bacon, Kevin"
+
+
+        visited = set()
+        queue = deque([(start_vertex, 0)])
+        distances = {}
+
+        while queue:
+            current_vertex, current_distance = queue.popleft()
+
+            # Processa o vértice atual se ainda não foi visitado
+            if current_vertex not in visited:
+                visited.add(current_vertex)
+                distances[current_vertex] = current_distance
+
+                # Adiciona todos os visinhos a lista
+                for neighbor in graph.get_OutNeighbors(current_vertex):
+                    if neighbor not in visited:
+                        queue.append((neighbor, current_distance + 1))
+
+        return distances
+
