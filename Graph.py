@@ -257,6 +257,13 @@ class Graph:
                 if (incoming and y == v) or (not incoming and x == v):
                     yield edge
 
+    def get_unique_labels(self, edges):
+        """ Extrai rótulos únicos das arestas fornecidas. """
+        labels = set()
+        for edge in edges:
+            labels.add(edge._label)
+        yield labels
+
     def get_OutNeighbors(self, v):
         neighbors_list = []
 

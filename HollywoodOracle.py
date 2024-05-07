@@ -14,6 +14,34 @@ class HollywoodOracle:
     def all_movies(self):
         return self._graph._labels
 
+    def all_actors(self):
+        return self._graph._vertices
+
+    def movies_from(self, actor):
+        edges = self._graph.incident_edges(actor)
+        if edges is None:
+            return None
+        return self._graph.get_unique_labels(edges)
+
+    def cast_of(self, movie):
+
+        edgesWithMovie = filter(lambda tupla: tupla[2] == movie, self._graph._edges)
+
+        cast_of = set()
+
+        for edge in edgesWithMovie:
+            cast_of.add(edge[0])
+            cast_of.add(edge[1])
+
+        return cast_of
+
+    def set_center_of_universe(self, actor):
+        self._distances = SearchAlgorithim.bfs(self._graph, actor)
+
+
+
+
+
 
 
 # classe estática responsável por administrar o conteúdo dos DataSets
