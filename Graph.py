@@ -1,4 +1,3 @@
-# Class Vertice
 class Vertex:
     ''' Estrutura de Vértice para um grafo: encapsula um elemento que é o identificador deste nó.
         O elemento deve ser hashable:
@@ -152,19 +151,32 @@ class Graph:
         edge_key = (u.vertice(), v.vertice(), label)  # Cria identificador único
 
         if edge_key not in self._edges:
-
             self._edges.add(edge_key)  # Adiciona ao set para um check-up rápido
-            self._labels.add(label)   # Adiciona ao set para um check-up rápido
+            self._labels.add(label)    # Adiciona ao set para um check-up rápido
 
-            # Adiciona ao dicionário
+            # Cria um novo objeto Edge
             edge = Edge(u, v, label)
 
-            self._vertices[u][v] = edge
+            # Adiciona ao dicionário verificando se já existe entrada para u a v
+            if v in self._vertices[u]:
+                if isinstance(self._vertices[u][v], list):
+                    self._vertices[u][v].append(edge)
+                else:
+                    self._vertices[u][v] = [self._vertices[u][v], edge]
+            else:
+                self._vertices[u][v] = [edge]
 
             if not self._directed:
-                self._vertices[v][u] = edge
+                if u in self._vertices[v]:
+                    if isinstance(self._vertices[v][u], list):
+                        self._vertices[v][u].append(edge)
+                    else:
+                        self._vertices[v][u] = [self._vertices[v][u], edge]
+                else:
+                    self._vertices[v][u] = [edge]
 
             self._m += 1
+
 
 
 
@@ -187,21 +199,13 @@ class Graph:
 
     def get_edge(self, u, v, label):
 
-        '''Método interno: Devolve a aresta que liga u a v com uma etiqueta específica ou None se não forem adjacentes ou a aresta com tal etiqueta não existir.'''
-
         if u in self._vertices and v in self._vertices[u]:
-            # Guarda numa variavel a lista com os possiveis edges entre um par de vértices
             edges = self._vertices[u][v]
             if isinstance(edges, list):
                 for edge in edges:
-                    if edge.label == label:
+                    if edge._label == label:
                         return edge
-
-            # Se não for uma lista compara a label diretamente
-            elif edges._label == label:
-                return edges
         return None
-
 
     def vertices(self):
         '''Devolve um iterável sobre todos os vértices do Grafo'''
@@ -228,14 +232,22 @@ class Graph:
             self._n -= 1
 
     def remove_edge(self, u, v, label):
+
         edge_key = (u.vertice(), v.vertice(), label)
+
         if edge_key in self._edges:
             self._edges.remove(edge_key)
-            # Additional logic to update adjacency structures
-            del self._vertices[u][v]
+            # Remove a aresta específica da lista
+            if len(self._vertices[u][v]) > 1:
+                self._vertices[u][v] = [e for e in self._vertices[u][v] if e._label != label]
+            else:
+                del self._vertices[u][v]
             if not self._directed:
-                del self._vertices[v][u]
-            self._m -= 1  # Decrement edge count
+                if len(self._vertices[v][u]) > 1:
+                    self._vertices[v][u] = [e for e in self._vertices[v][u] if e._label != label]
+                else:
+                    del self._vertices[v][u]
+            self._m -= 1
 
 
     def has_neighbors(self, v):
@@ -267,14 +279,30 @@ class Graph:
     def get_OutNeighbors(self, v):
         neighbors_list = []
 
-        for edge in self.incident_edges(v):
-            if edge.get_ant() not in neighbors_list and edge.get_ant() != v:
-                neighbors_list.append(edge.get_ant())
-            elif edge.get_suc() not in neighbors_list and edge.get_suc() != v:
-                neighbors_list.append(edge.get_suc())
+        # Supondo que self._vertices[v] seja um dicionário que pode ter listas de edges como valores
+        for adjacent, edges in self._vertices[v].items():
+            if isinstance(edges, list):
+                for edge in edges:
+                    if self._directed:
+                        if edge.get_suc() not in neighbors_list and edge.get_suc() != v:
+                            neighbors_list.append(edge.get_suc())
+                    else:
+                        # Em grafos não dirigidos, ambos os vértices nas extremidades de uma aresta são considerados vizinhos
+                        other = edge.opposite(v)
+                        if other not in neighbors_list and other != v:
+                            neighbors_list.append(other)
+            else:
+                if self._directed:
+                    if edges.get_suc() not in neighbors_list and edges.get_suc() != v:
+                        neighbors_list.append(edges.get_suc())
+                else:
+                    other = edges.opposite(v)
+                    if other not in neighbors_list and other != v:
+                        neighbors_list.append(other)
 
-        #sort by number of the vertix
+        # Ordenar por número do vértice (assumindo que o elemento é numérico ou alfabético)
         return sorted(neighbors_list, key=lambda x: (x._elemento))
+
 
     def is_successor(self, v, x):
         for edge in self.incident_edges(v):

@@ -9,7 +9,7 @@ class HollywoodOracle:
     def __init__(self, filename):
 
         self._graph = FileManager.build_graph_from_file(filename)
-        self._distances = SearchAlgorithim.bfs(self._graph, "Fitz-Gerald, Lewis")
+        # self._distances = SearchAlgorithim.bfs(self._graph, "Fitz-Gerald, Lewis")
 
     def all_movies(self):
         return self._graph._labels
