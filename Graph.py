@@ -147,33 +147,21 @@ class Graph:
         return v
 
     def insert_edge(self, u, v, label):
-
-        edge_key = (u.vertice(), v.vertice(), label)  # Cria identificador único
+        edge = Edge(u, v, label)
+        edge_key = (u.vertice(), v.vertice(), label)
 
         if edge_key not in self._edges:
-            self._edges.add(edge_key)  # Adiciona ao set para um check-up rápido
-            self._labels.add(label)    # Adiciona ao set para um check-up rápido
+            self._edges.add(edge_key)
+            self._labels.add(label)
 
-            # Cria um novo objeto Edge
-            edge = Edge(u, v, label)
-
-            # Adiciona ao dicionário verificando se já existe entrada para u a v
-            if v in self._vertices[u]:
-                if isinstance(self._vertices[u][v], list):
-                    self._vertices[u][v].append(edge)
-                else:
-                    self._vertices[u][v] = [self._vertices[u][v], edge]
-            else:
-                self._vertices[u][v] = [edge]
+            if v not in self._vertices[u]:
+                self._vertices[u][v] = []
+            self._vertices[u][v].append(edge)
 
             if not self._directed:
-                if u in self._vertices[v]:
-                    if isinstance(self._vertices[v][u], list):
-                        self._vertices[v][u].append(edge)
-                    else:
-                        self._vertices[v][u] = [self._vertices[v][u], edge]
-                else:
-                    self._vertices[v][u] = [edge]
+                if u not in self._vertices[v]:
+                    self._vertices[v][u] = []
+                self._vertices[v][u].append(edge)
 
             self._m += 1
 
@@ -272,36 +260,25 @@ class Graph:
     def get_unique_labels(self, edges):
         """ Extrai rótulos únicos das arestas fornecidas. """
         labels = set()
-        for edge in edges:
-            labels.add(edge._label)
+        for edgeList in edges:
+            for edge in edgeList:
+                labels.add(edge._label)
         yield labels
 
     def get_OutNeighbors(self, v):
         neighbors_list = []
 
-        # Supondo que self._vertices[v] seja um dicionário que pode ter listas de edges como valores
-        for adjacent, edges in self._vertices[v].items():
-            if isinstance(edges, list):
-                for edge in edges:
-                    if self._directed:
-                        if edge.get_suc() not in neighbors_list and edge.get_suc() != v:
-                            neighbors_list.append(edge.get_suc())
-                    else:
-                        # Em grafos não dirigidos, ambos os vértices nas extremidades de uma aresta são considerados vizinhos
-                        other = edge.opposite(v)
-                        if other not in neighbors_list and other != v:
-                            neighbors_list.append(other)
-            else:
-                if self._directed:
-                    if edges.get_suc() not in neighbors_list and edges.get_suc() != v:
-                        neighbors_list.append(edges.get_suc())
-                else:
-                    other = edges.opposite(v)
-                    if other not in neighbors_list and other != v:
-                        neighbors_list.append(other)
+        if v not in self._vertices:
+            return neighbors_list
 
-        # Ordenar por número do vértice (assumindo que o elemento é numérico ou alfabético)
-        return sorted(neighbors_list, key=lambda x: (x._elemento))
+        for edges in self._vertices[v].values():
+            for edge in edges:
+                neighbor = edge.get_suc() if self._directed or edge.get_suc() != v else edge.opposite(v)
+                if neighbor not in neighbors_list:
+                    neighbors_list.append(neighbor)
+
+        return neighbors_list
+
 
 
     def is_successor(self, v, x):
