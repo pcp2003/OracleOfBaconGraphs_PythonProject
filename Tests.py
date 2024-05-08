@@ -4,7 +4,7 @@ import string  # Importar para usar string.ascii_letters
 
 from HollywoodOracle import HollywoodOracle
 
-oracle = HollywoodOracle("DataSets/testDataSet.txt")
+oracle = HollywoodOracle("DataSets/small_dataset_utf8.txt")
 
 movies = oracle.all_movies()
 
@@ -36,15 +36,29 @@ for cast in castOfX:
 
 print("\n")
 
-for distance in oracle._distances:
-    print(oracle._distances[distance], ":", distance)
+for distance in oracle._bfs_result:
+    print(oracle._bfs_result[distance][0], ":", distance)
 
 oracle.set_center_of_universe("Knez, Bruno")
 
 print("\n")
 
-for distance in oracle._distances:
-    print(oracle._distances[distance], ":", distance)
+for distance in oracle._bfs_result:
+    print(oracle._bfs_result[distance][0], ":", distance)
+
+print("\n")
+print("Number of X: ", oracle.number_of_X("Sullivan, Fiona"))
+
+pathToX = oracle.path_to_X("Grandison, Pippa")
+
+print("\n")
+print("Path to X: " )
+
+for path in pathToX:
+    print(path)
+
+
+
 
 
 

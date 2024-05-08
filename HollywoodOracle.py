@@ -9,7 +9,7 @@ class HollywoodOracle:
     def __init__(self, filename):
 
         self._graph = FileManager.build_graph_from_file(filename)
-        self._distances = SearchAlgorithim.bfs(self._graph, "Fitz-Gerald, Lewis")
+        self._bfs_result = SearchAlgorithim.bfs(self._graph, "Fitz-Gerald, Lewis")
 
     def all_movies(self):
         return self._graph._labels
@@ -36,13 +36,21 @@ class HollywoodOracle:
         return cast_of
 
     def set_center_of_universe(self, actor):
-        self._distances = SearchAlgorithim.bfs(self._graph, actor)
+        self._bfs_result = SearchAlgorithim.bfs(self._graph, actor)
+
+    def number_of_X(self, Actor):
+        if Actor in self._bfs_result:
+            return self._bfs_result[Actor][0]  # Retorna o caminho incluindo filmes
+        else:
+            return None  # Não há caminho se o ator não está conectado
 
 
-
-
-
-
+    # Após executar o BFS, você pode extrair o caminho para qualquer ator
+    def path_to_X(self, actor):
+        if actor in self._bfs_result:
+            return self._bfs_result[actor][1]  # Retorna o caminho incluindo filmes
+        else:
+            return None  # Não há caminho se o ator não está conectado
 
 # classe estática responsável por administrar o conteúdo dos DataSets
 class FileManager:
@@ -79,29 +87,29 @@ class FileManager:
 class SearchAlgorithim:
 
     #Define por omissão "Bacon, Kevin", como centro do universo!
+
     @staticmethod
     def bfs(graph, start_vertex=None):
-
         if not start_vertex:
             start_vertex = "Bacon, Kevin"
 
-
-        visited = set()
-        queue = deque([(start_vertex, 0)])
-        distances = {}
+        queue = deque([start_vertex])
+        visited = {start_vertex: (0, [(start_vertex, None)])}  # Inicia com distância 0 e caminho apenas com o ator inicial
 
         while queue:
-            current_vertex, current_distance = queue.popleft()
+            current_vertex = queue.popleft()
+            current_distance, path_to_here = visited[current_vertex]
 
-            # Processa o vértice atual se ainda não foi visitado
-            if current_vertex not in visited:
-                visited.add(current_vertex)
-                distances[current_vertex] = current_distance
+            # Iterar sobre todos os vizinhos diretos do vértice atual
+            for edges in graph.incident_edges(current_vertex):  # Acessar lista de arestas
+                for edge in edges:  # Iterar sobre cada aresta individual se for uma lista
+                    neighbor = edge.opposite(current_vertex)
+                    if neighbor not in visited:  # Se não visitado, processa e adiciona à fila
+                        visited[neighbor] = (
+                            current_distance + 1,
+                            path_to_here + [(edge._label, neighbor)]
+                        )
+                        queue.append(neighbor)
 
-                # Adiciona todos os visinhos a lista
-                for neighbor in graph.get_OutNeighbors(current_vertex):
-                    if neighbor not in visited:
-                        queue.append((neighbor, current_distance + 1))
-
-        return distances
+        return visited
 
