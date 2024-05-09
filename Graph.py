@@ -136,8 +136,7 @@ class Graph:
         if not self.has_node(u) or not self.has_node(v):
             return False
         else:
-            return Vertex(v) in self._vertices[u].keys()
-
+            return v in self._vertices[u]  # Supondo que `u` e `v` já sejam objetos Vertex quando passados para este método
 
     def insert_vertex(self, x):
         '''Insere e devolve um novo vértice com o elemento x'''
@@ -147,23 +146,23 @@ class Graph:
         return v
 
     def insert_edge(self, u, v, label):
+        if not (u in self._vertices and v in self._vertices):
+            raise ValueError("Um ou ambos os vértices não existem no grafo")
         edge = Edge(u, v, label)
-        edge_key = (u.vertice(), v.vertice(), label)
+        edge_key = (u, v, label)
 
         if edge_key not in self._edges:
             self._edges.add(edge_key)
             self._labels.add(label)
-
             if v not in self._vertices[u]:
                 self._vertices[u][v] = []
             self._vertices[u][v].append(edge)
-
             if not self._directed:
                 if u not in self._vertices[v]:
                     self._vertices[v][u] = []
                 self._vertices[v][u].append(edge)
-
             self._m += 1
+
 
 
 
@@ -200,11 +199,17 @@ class Graph:
         return self._vertices.keys()
 
     def edges(self):
-        '''Devolve o conjunto (set) de todas as arestas do Grafo'''
-        result = set()      # avoid double-reporting edges in undirected graph
-        for secondary_map in self._vertices.values():
-            result.update(secondary_map.values())  # add edges to resulting set
-        return list(result)
+        """Devolve um gerador para todas as arestas do Grafo, evitando duplicações em grafos não direcionados."""
+        seen = set()
+        for u in self._vertices:
+            for v in self._vertices[u]:
+                if not self._directed or (u, v) not in seen:
+                    seen.add((u, v))
+                    seen.add((v, u))  # Garantindo que não retornaremos a aresta reversa em grafos não direcionados
+                    for edge in self._vertices[u][v]:
+                        yield edge
+
+
 
     def remove_vertex(self, v):
         '''remove o vértice v. Se o vertice não existir, não faz nada.'''
@@ -266,18 +271,19 @@ class Graph:
         yield labels
 
     def get_OutNeighbors(self, v):
-        neighbors_list = []
 
+        """Devolve um gerador sobre os vizinhos de saída do vértice v."""
         if v not in self._vertices:
-            return neighbors_list
+            return  # Retorna None se não existirem vértices
 
+        seen = set()
         for edges in self._vertices[v].values():
             for edge in edges:
                 neighbor = edge.get_suc() if self._directed or edge.get_suc() != v else edge.opposite(v)
-                if neighbor not in neighbors_list:
-                    neighbors_list.append(neighbor)
+                if neighbor not in seen:
+                    seen.add(neighbor)
+                    yield neighbor
 
-        return neighbors_list
 
 
 

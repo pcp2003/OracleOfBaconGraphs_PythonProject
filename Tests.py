@@ -4,7 +4,7 @@ import string  # Importar para usar string.ascii_letters
 
 from HollywoodOracle import HollywoodOracle
 
-oracle = HollywoodOracle("DataSets/small_dataset_utf8.txt")
+oracle = HollywoodOracle("DataSets/testDataSet.txt")
 
 movies = oracle.all_movies()
 
