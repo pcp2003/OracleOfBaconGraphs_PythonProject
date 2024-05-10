@@ -1,6 +1,14 @@
+import profile
 from collections import deque
 
 from Graph import Graph, Vertex
+
+# Tenta importar o decorador profile do memory_profiler, se não estiver disponível, define um que não faz nada
+try:
+    from memory_profiler import profile
+except ImportError:
+    def profile(func):
+        return func
 
 
 class HollywoodOracle:
@@ -9,7 +17,7 @@ class HollywoodOracle:
     def __init__(self, filename):
 
         self._graph = FileManager.build_graph_from_file(filename)
-        self._bfs_result = SearchAlgorithim.bfs(self._graph, "Fitz-Gerald, Lewis")
+        # self._bfs_result = SearchAlgorithim.bfs(self._graph, Vertex("Fitz-Gerald, Lewis"))
 
     def all_movies(self):
         return self._graph._labels
@@ -18,7 +26,7 @@ class HollywoodOracle:
         return self._graph._vertices
 
     def movies_from(self, actor):
-        edges = self._graph.incident_edges(actor)
+        edges = self._graph._incident_edges(actor)
         if edges is None:
             return None
         return self._graph.get_unique_labels(edges)
@@ -53,9 +61,12 @@ class HollywoodOracle:
             return None  # Não há caminho se o ator não está conectado
 
 # classe estática responsável por administrar o conteúdo dos DataSets
+
 class FileManager:
 
+
     @staticmethod
+    @profile
     def build_graph_from_file(filename):
         graph = Graph()
         vertex_map = {}  # Cache vertex objects to avoid duplicate creation
@@ -90,26 +101,22 @@ class SearchAlgorithim:
 
     @staticmethod
     def bfs(graph, start_vertex=None):
+
         if not start_vertex:
-            start_vertex = "Bacon, Kevin"
+            start_vertex = Vertex("Bacon, Kevin")
 
         queue = deque([start_vertex])
         visited = {start_vertex: (0, [(start_vertex, None)])}  # Inicia com distância 0 e caminho apenas com o ator inicial
 
         while queue:
+
             current_vertex = queue.popleft()
             current_distance, path_to_here = visited[current_vertex]
 
-            # Iterar sobre todos os vizinhos diretos do vértice atual
-            for edges in graph.incident_edges(current_vertex):  # Acessar lista de arestas
-                for edge in edges:  # Iterar sobre cada aresta individual se for uma lista
-                    neighbor = edge.opposite(current_vertex)
-                    if neighbor not in visited:  # Se não visitado, processa e adiciona à fila
-                        visited[neighbor] = (
-                            current_distance + 1,
-                            path_to_here + [(edge._label, neighbor)]
-                        )
-                        queue.append(neighbor)
+            for neighbor in graph.get_neighbors(current_vertex):
+                if neighbor not in visited:
+                    visited[neighbor] = (current_distance + 1, path_to_here + [neighbor])
+                    queue.append(neighbor)
 
         return visited
 

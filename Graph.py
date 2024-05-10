@@ -1,3 +1,14 @@
+
+
+try:
+    from memory_profiler import profile
+except ImportError:
+    def profile(func):
+        return func
+
+
+
+# Class Vertice
 class Vertex:
     ''' Estrutura de Vértice para um grafo: encapsula um elemento que é o identificador deste nó.
         O elemento deve ser hashable:
@@ -88,7 +99,7 @@ class Graph:
         self._directed = directed
 
     def _incident_edges(self, v):
-        '''Gerador: devolve todas as arestas de um vértice v.'''
+        '''Gerador: devolve todas as listas de arestas de um vértice v.'''
         for edge in self._vertices[v].values(): # para todas as arestas incidentes em v:
             yield edge
 
@@ -129,6 +140,7 @@ class Graph:
         """Verifica se o vértice v está no grafo."""
         return v in self._vertices
 
+
     def has_especificEdge(self, u, v, label):
         return (u.vertice(), v.vertice(), label) in self._edges
 
@@ -138,6 +150,7 @@ class Graph:
         else:
             return v in self._vertices[u]  # Supondo que `u` e `v` já sejam objetos Vertex quando passados para este método
 
+
     def insert_vertex(self, x):
         '''Insere e devolve um novo vértice com o elemento x'''
         v = Vertex(x)
@@ -146,47 +159,43 @@ class Graph:
         return v
 
     def insert_edge(self, u, v, label):
+
         if not (u in self._vertices and v in self._vertices):
             raise ValueError("Um ou ambos os vértices não existem no grafo")
-        edge = Edge(u, v, label)
-        edge_key = (u, v, label)
+
+        edge_key = (u.vertice(), v.vertice(), label)
 
         if edge_key not in self._edges:
-            self._edges.add(edge_key)
-            self._labels.add(label)
-            if v not in self._vertices[u]:
+
+            self._edges.add((u.vertice(), v.vertice(), label))  # Adiciona ao set para um check-up rápido
+            self._edges.add((v.vertice(), u.vertice(), label))  # Adiciona ao set para um check-up rápido
+            self._labels.add(label)   # Adiciona ao set para um check-up rápido
+            edge = Edge(u, v, label)  # Adiciona ao dicionário
+
+            if v not in self._vertices[u]: # Se não há nenhuma aresta entre U e V, cria a lista
                 self._vertices[u][v] = []
-            self._vertices[u][v].append(edge)
-            if not self._directed:
-                if u not in self._vertices[v]:
-                    self._vertices[v][u] = []
-                self._vertices[v][u].append(edge)
+
+            self._vertices[u][v].append(edge) # Adiciona a lista ao espaço [u][v] do dicionário
+
+            # Como não é dirigido faz o mesmo processo para o outro vértice
+
+            if u not in self._vertices[v]: # Se não há nenhuma aresta entre V e U, cria a lista
+                self._vertices[v][u] = []
+            self._vertices[v][u].append(edge) # Adiciona a lista ao espaço [v][u] do dicionário
+
             self._m += 1
 
+    def degree(self, v):
 
-
-
-
-    def degree(self, v, outgoing=True):
-
-        '''Quantidade de arestas originárias ou incidentes no vértice v
-           Se for um grafo dirigido, conta as arestas outgoing ou incoming,
-           de acordo com o valor de outgoing (True or False)
-        '''
-        adj = self._vertices
-        if not self._directed:
-            count = len(adj[v])
-        else:
-            count = 0
-            for edge in adj[v].values():
-                x, y = edge.endpoints()
-                if (outgoing and x == v) or (not outgoing and y == v):
-                    count += 1
-        return count
+        '''Quantidade de arestas originárias ou incidentes no vértice v'''
+        return len(self._vertices[v])
 
     def get_edge(self, u, v, label):
 
+        '''Método interno: Devolve a aresta que liga u a v com uma etiqueta específica ou None se não forem adjacentes ou a aresta com tal etiqueta não existir.'''
+
         if u in self._vertices and v in self._vertices[u]:
+            # Guarda numa variavel a lista com os possiveis edges entre um par de vértices
             edges = self._vertices[u][v]
             if isinstance(edges, list):
                 for edge in edges:
@@ -194,110 +203,66 @@ class Graph:
                         return edge
         return None
 
+
     def vertices(self):
         '''Devolve um iterável sobre todos os vértices do Grafo'''
-        return self._vertices.keys()
+        yield self._vertices.keys()
 
     def edges(self):
-        """Devolve um gerador para todas as arestas do Grafo, evitando duplicações em grafos não direcionados."""
-        seen = set()
-        for u in self._vertices:
-            for v in self._vertices[u]:
-                if not self._directed or (u, v) not in seen:
-                    seen.add((u, v))
-                    seen.add((v, u))  # Garantindo que não retornaremos a aresta reversa em grafos não direcionados
-                    for edge in self._vertices[u][v]:
-                        yield edge
-
-
+        '''Devolve o conjunto (set) de todas as (Representações) das arestas do Grafo'''
+        yield self._edges
 
     def remove_vertex(self, v):
         '''remove o vértice v. Se o vertice não existir, não faz nada.'''
         # remover todas as arestas de [v]
         # remover todas as arestas com v noutros vertices
         # remover o vértice v
+
         if v in self._vertices.keys():
-            lst = [i for i in self.incident_edges(v)]
+            lst = [i for i in self._incident_edges(v)]
             for i in lst:
                 x, y = i.endpoints()
-                self.remove_edge(x,y)
+                self.remove_edges_list(x,y)
             del self._vertices[v]
             self._n -= 1
 
-    def remove_edge(self, u, v, label):
+    def remove_edges_list(self, u, v):
 
-        edge_key = (u.vertice(), v.vertice(), label)
+        if self._vertices[u][v] is not None:
 
-        if edge_key in self._edges:
-            self._edges.remove(edge_key)
-            # Remove a aresta específica da lista
-            if len(self._vertices[u][v]) > 1:
-                self._vertices[u][v] = [e for e in self._vertices[u][v] if e._label != label]
-            else:
-                del self._vertices[u][v]
-            if not self._directed:
-                if len(self._vertices[v][u]) > 1:
-                    self._vertices[v][u] = [e for e in self._vertices[v][u] if e._label != label]
-                else:
-                    del self._vertices[v][u]
-            self._m -= 1
+            #Removendo do dicionário
+            del self._vertices[u][v]
+            del self._vertices[v][u]
+
+            #Removendo do set de pesquisa
+            for edge in self._edges:
+                if edge[0] == u.vertice() and edge[1] == v.vertice() or edge[0] == v.vertice() and edge[1] == u.vertice():
+                    self._edges.discard(edge)
+
+
+            self._n -= 1
 
 
     def has_neighbors(self, v):
-        if self.incident_edges(v) != None:
+        if self._incident_edges(v) != None:
             return True
         else:
             return False
 
-    def incident_edges(self, v, incoming=True):
-        '''Gerador: indica todas as arestas incoming de v
-           Se for um grafo dirigido e incoming for False, devolve as arestas outgoing
-        '''
-
-        for edge in self._vertices[v].values(): # para todas as arestas relativas a v:
-            if not self._directed:
-                yield edge
-            else:  # senão deve ir procurar em todas as arestas para saber quais entram ou saiem
-                x, y = edge.endpoints()
-                if (incoming and y == v) or (not incoming and x == v):
-                    yield edge
-
-    def get_unique_labels(self, edges):
+    def get_unique_labels(self, listsOfListsOfEdges):
         """ Extrai rótulos únicos das arestas fornecidas. """
         labels = set()
-        for edgeList in edges:
+        for edgeList in listsOfListsOfEdges:
             for edge in edgeList:
                 labels.add(edge._label)
         yield labels
 
-    def get_OutNeighbors(self, v):
+    def get_neighbors(self, v):
+        """ Retorna uma lista de vizinhos do vértice 'v'. """
+        if v in self._vertices:
+            return self._vertices[v].keys()  # Retorna uma lista de vértices vizinhos
+        return []  # Retorna uma lista vazia se não há vizinhos ou o vértice não existe
 
-        """Devolve um gerador sobre os vizinhos de saída do vértice v."""
-        if v not in self._vertices:
-            return  # Retorna None se não existirem vértices
-
-        seen = set()
-        for edges in self._vertices[v].values():
-            for edge in edges:
-                neighbor = edge.get_suc() if self._directed or edge.get_suc() != v else edge.opposite(v)
-                if neighbor not in seen:
-                    seen.add(neighbor)
-                    yield neighbor
-
-
-
-
-    def is_successor(self, v, x):
-        for edge in self.incident_edges(v):
-            if edge.get_ant() == x:
-                return True
-        return False
-
-    def is_predecessor(self, u, v):
-        for edge in self.incident_edges(u):
-            if edge.get_ant() == v:
-                return True
-        return False
 
 
     def printG(self):
@@ -308,10 +273,6 @@ class Graph:
             print('Grafo orientado:', self._directed)
             for v in self.vertices():
                 print('\nvertex ', v, ' grau_in: ', self.degree(v,False), end=' ')# mostra o grau (de saída se orientado)
-                for i in self.incident_edges(v):
+                for i in self._incident_edges(v):
                     print(' ', i, end=' ')
-                if self._directed:          # se orientado, mostrar o grau de saida
-                    print('\n \t   grau_out: ', self.degree(v, True), end=' ')
-                    for i in self.incident_edges(v, False):    # e mostrar os arcos de saída
-                        print(' ', i, end=' ')
 
