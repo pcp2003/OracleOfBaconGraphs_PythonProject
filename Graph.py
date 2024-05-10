@@ -40,29 +40,28 @@ class Vertex:
 class Edge:
     '''Estrutura de Aresta para um Grafo: (origem, destino) e peso '''
 
-    def __init__(self, u, v, label):
+    def __init__(self, u, v):
         self._vertex1 = u
         self._vertex2 = v
-        self._label = label
 
     def __hash__(self):
         # Função que mapeia a aresta a uma posição no dicionário (hash map)
         return hash( (self._vertex1, self._vertex2) )
 
     def __str__(self):
-        return f'({self._vertex1},{self._vertex2},{self._label})'
+        return f'({self._vertex1},{self._vertex2})'
 
 
     def __eq__(self, other):
         # define igualdade de duas arestas (deve ser consistente com a função hash)
-        return self._vertex1 == other._vertex1 and self._vertex2 == other._vertex2 and self._label == other._label
+        return self._vertex1 == other._vertex1 and self._vertex2 == other._vertex2
 
     def endpoints(self):
         '''Devolve a tupla (u,v) que indica os vértices antecessor e sucessor.'''
         return (self._vertex1, self._vertex2)
 
     def show_edge(self):
-        print('(',self._vertex1, ', ', self._vertex2, ') label', self._label)
+        print('(',self._vertex1, ', ', self._vertex2)
 
     # métodos novas
     def get_ant(self):
@@ -92,13 +91,12 @@ class Graph:
     def __init__(self, directed=False):
         '''Construtor: Cria um grafo vazio (dicionário de _vertices).'''
         self._vertices = {}         # dicionário com chave vértice e valor mapa de adjacência
-        self._edges = set()   # set com arestas unicas
-        self._labels = set()    # set com labels unicas
         self._n = 0                 # número de vértices do grafo
         self._m = 0                 # número de arestas do grafo
         self._directed = directed
 
     def _incident_edges(self, v):
+
         '''Gerador: devolve todas as listas de arestas de um vértice v.'''
         for edge in self._vertices[v].values(): # para todas as arestas incidentes em v:
             yield edge
@@ -141,66 +139,42 @@ class Graph:
         return v in self._vertices
 
 
-    def has_especificEdge(self, u, v, label):
-        return (u.vertice(), v.vertice(), label) in self._edges
-
-    def has_AnyEdge(self, u, v):
+    def has_edge(self, u, v):
         if not self.has_node(u) or not self.has_node(v):
             return False
         else:
-            return v in self._vertices[u]  # Supondo que `u` e `v` já sejam objetos Vertex quando passados para este método
-
+            return v in self._vertices[u].keys()
 
     def insert_vertex(self, x):
         '''Insere e devolve um novo vértice com o elemento x'''
         v = Vertex(x)
         self._vertices[v] = {}      # inicializa o dicionário de adjacências deste vértice a vazio
-        self._n +=1                 # mais um vértice no grafo
-        return v
+        self._n += 1                 # mais um vértice no grafo
 
-    def insert_edge(self, u, v, label):
+    def insert_edge(self, u, v):
 
-        if not (u in self._vertices and v in self._vertices):
-            raise ValueError("Um ou ambos os vértices não existem no grafo")
+        if not self.has_node(u):
+            self.insert_vertex(u)
+        if not self.has_node(v):
+            self.insert_vertex(v)
+        if not self.has_edge(u, v):
 
-        edge_key = (u.vertice(), v.vertice(), label)
-
-        if edge_key not in self._edges:
-
-            self._edges.add((u.vertice(), v.vertice(), label))  # Adiciona ao set para um check-up rápido
-            self._edges.add((v.vertice(), u.vertice(), label))  # Adiciona ao set para um check-up rápido
-            self._labels.add(label)   # Adiciona ao set para um check-up rápido
-            edge = Edge(u, v, label)  # Adiciona ao dicionário
-
-            if v not in self._vertices[u]: # Se não há nenhuma aresta entre U e V, cria a lista
-                self._vertices[u][v] = []
-
-            self._vertices[u][v].append(edge) # Adiciona a lista ao espaço [u][v] do dicionário
-
-            # Como não é dirigido faz o mesmo processo para o outro vértice
-
-            if u not in self._vertices[v]: # Se não há nenhuma aresta entre V e U, cria a lista
-                self._vertices[v][u] = []
-            self._vertices[v][u].append(edge) # Adiciona a lista ao espaço [v][u] do dicionário
-
-            self._m += 1
+            e = Edge(u, v)            # ''' Cria e insere uma nova aresta entre u e v com id (u,v) . '''
+            self._m += 1              # atualiza m apenas se a aresta ainda não existir no grafo
+            self._vertices[u][v] = e  # coloca v nas adjacências de u
+            self._vertices[v][u] = e  # e u nas adjacências de v (para facilitar a procura de todas as arestas incidentes num vértice)
 
     def degree(self, v):
 
         '''Quantidade de arestas originárias ou incidentes no vértice v'''
         return len(self._vertices[v])
 
-    def get_edge(self, u, v, label):
-
-        '''Método interno: Devolve a aresta que liga u a v com uma etiqueta específica ou None se não forem adjacentes ou a aresta com tal etiqueta não existir.'''
+    def get_edge(self, u, v):
 
         if u in self._vertices and v in self._vertices[u]:
             # Guarda numa variavel a lista com os possiveis edges entre um par de vértices
-            edges = self._vertices[u][v]
-            if isinstance(edges, list):
-                for edge in edges:
-                    if edge._label == label:
-                        return edge
+            return self._vertices[u][v]
+
         return None
 
 
@@ -248,14 +222,6 @@ class Graph:
             return True
         else:
             return False
-
-    def get_unique_labels(self, listsOfListsOfEdges):
-        """ Extrai rótulos únicos das arestas fornecidas. """
-        labels = set()
-        for edgeList in listsOfListsOfEdges:
-            for edge in edgeList:
-                labels.add(edge._label)
-        yield labels
 
     def get_neighbors(self, v):
         """ Retorna uma lista de vizinhos do vértice 'v'. """
