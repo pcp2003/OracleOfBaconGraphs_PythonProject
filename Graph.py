@@ -1,63 +1,45 @@
-
-
-try:
-    from memory_profiler import profile
-except ImportError:
-    def profile(func):
-        return func
-
-
-
 # Class Vertice
 class Vertex:
-    ''' Estrutura de Vértice para um grafo: encapsula um elemento que é o identificador deste nó.
-        O elemento deve ser hashable:
-        - Um objeto hashable é aquele que pode ser utilizado como uma chave num dicionário Python.
-        - Isto inclui strings, números, tuplas, etc.
-    '''
-
-    def __init__(self, x):
-        '''O vértice será inserido no Grafo usando o método insert_vertex(x) que cria um Vertex'''
+    def __init__(self, x, vertex_type):
         self._elemento = x
+        self._vertex_type = vertex_type
+        self._hash = hash((self._elemento, self._vertex_type))  # Pré-calcule o hash
 
     def __hash__(self):
-        ''' o valor do elemento é usado como hash para o vértice (o elemento deve ser hashable)'''
-        return hash(self._elemento)  # devolve o hash do elemento
+        return self._hash
+
+    def __eq__(self, other):
+        return isinstance(other, Vertex) and self._elemento == other._elemento
 
     def __str__(self):
-        '''Devolve a representação do objeto vértice em string.'''
-        return'{0}'.format(self._elemento)
+        return f'{self._elemento}'
 
-    def __eq__(self, x):
-        return x == self._elemento # Deve-se garantir que: se hash(x)==hash(elemento), entao x==elemento
-
-    def vertice(self):
-        '''Devolve o elemento guardado neste vértice'''
+    @property
+    def elemento(self):
         return self._elemento
 
+    @property
+    def vertex_type(self):
+        return self._vertex_type
 
-# #### Class Edge
+
 class Edge:
-    '''Estrutura de Aresta para um Grafo: (origem, destino) e peso '''
-
     def __init__(self, u, v):
         self._vertex1 = u
         self._vertex2 = v
+        self._hash = hash((u, v))
 
     def __hash__(self):
-        # Função que mapeia a aresta a uma posição no dicionário (hash map)
-        return hash( (self._vertex1, self._vertex2) )
-
-    def __str__(self):
-        return f'({self._vertex1},{self._vertex2})'
-
+        return self._hash
 
     def __eq__(self, other):
-        # define igualdade de duas arestas (deve ser consistente com a função hash)
-        return self._vertex1 == other._vertex1 and self._vertex2 == other._vertex2
+        return isinstance(other, Edge) and self._vertex1 == other._vertex1 and self._vertex2 == other._vertex2
 
+    def __str__(self):
+        return f'({self._vertex1}, {self._vertex2})'
+
+    @property
     def endpoints(self):
-        '''Devolve a tupla (u,v) que indica os vértices antecessor e sucessor.'''
         return (self._vertex1, self._vertex2)
 
     def show_edge(self):
@@ -89,11 +71,10 @@ class Graph:
 '''
 
     def __init__(self, directed=False):
-        '''Construtor: Cria um grafo vazio (dicionário de _vertices).'''
-        self._vertices = {}         # dicionário com chave vértice e valor mapa de adjacência
-        self._n = 0                 # número de vértices do grafo
-        self._m = 0                 # número de arestas do grafo
+        self._vertices = {}
         self._directed = directed
+        self._vertex_map = {}       # Chave: nome do elemento, Valor: objeto Vertex
+
 
     def _incident_edges(self, v):
 
@@ -101,71 +82,46 @@ class Graph:
         for edge in self._vertices[v].values(): # para todas as arestas incidentes em v:
             yield edge
 
-    def __str__(self):
-        if self._n == 0:
-            return "DAA-Graph: <empty>\n"
-        else:
-            ret = "DAA-Graph:\n"
-            ret += "directed: " + str(self._directed) + "\n"
-            for v in self._vertices:
-                ret += f"vertex {v}: "
-                # Collecting edges for each vertex
-                connections = []
-                # Since each vertex's adjacency list is now directly a dictionary to edges or labels
-                for adj_vertex, edge in self._vertices[v].items():
-                    if isinstance(edge, list):  # Handle multiple edges between the same vertices
-                        for e in edge:
-                            connections.append(str(e))
-                    else:
-                        connections.append(str(edge))
-                ret += "; ".join(connections) + "\n"
-            return ret
-
-
     def is_directed(self):
         '''com base na criação original da instância, devolve True se o Grafo é dirigido; False senão '''
         return self._directed  # True se os dois contentores são distintos
 
+    @property
     def order(self):
-        '''Ordem de um grafo: a quantidade de vértices no Grafo'''
-        return self._n
+        return len(self._vertices)
 
+    @property
     def size(self):
-        '''Dimensão de um grafo: a quantidade total de arestas do Grafo'''
-        return self._m
+        return sum(len(adj) for adj in self._vertices.values())
 
     def has_node(self, v):
-        """Verifica se o vértice v está no grafo."""
         return v in self._vertices
 
-
     def has_edge(self, u, v):
-        if not self.has_node(u) or not self.has_node(v):
-            return False
-        else:
-            return v in self._vertices[u].keys()
+        return v in self._vertices.get(u, {})
 
-    def insert_vertex(self, x):
-        '''Insere e devolve um novo vértice com o elemento x'''
-        v = Vertex(x)
-        self._vertices[v] = {}      # inicializa o dicionário de adjacências deste vértice a vazio
-        self._n += 1                 # mais um vértice no grafo
+    def get_vertex(self, vertex_name):
+        # Busca direta pelo nome do vértice
+        return self._vertex_map.get(vertex_name)
+
+    def insert_vertex(self, element, vertex_type):
+
+        if element not in self._vertex_map:
+
+            vertex = Vertex(element, vertex_type)
+            self._vertices[vertex] = {}
+            self._vertex_map[element] = vertex
+            return vertex
+        return self._vertex_map[element]
 
     def insert_edge(self, u, v):
-
-        if not self.has_node(u):
-            self.insert_vertex(u)
-        if not self.has_node(v):
-            self.insert_vertex(v)
-        if not self.has_edge(u, v):
-
-            e = Edge(u, v)            # ''' Cria e insere uma nova aresta entre u e v com id (u,v) . '''
-            self._m += 1              # atualiza m apenas se a aresta ainda não existir no grafo
-            self._vertices[u][v] = e  # coloca v nas adjacências de u
-            self._vertices[v][u] = e  # e u nas adjacências de v (para facilitar a procura de todas as arestas incidentes num vértice)
+        if v not in self._vertices[u]:
+            edge = Edge(u, v)
+            self._vertices[u][v] = edge
+            if not self._directed:
+                self._vertices[v][u] = edge
 
     def degree(self, v):
-
         '''Quantidade de arestas originárias ou incidentes no vértice v'''
         return len(self._vertices[v])
 
@@ -177,68 +133,41 @@ class Graph:
 
         return None
 
-
+    @property
     def vertices(self):
         '''Devolve um iterável sobre todos os vértices do Grafo'''
-        yield self._vertices.keys()
+        return self._vertices
 
     def edges(self):
         '''Devolve o conjunto (set) de todas as (Representações) das arestas do Grafo'''
-        yield self._edges
+        yield self._vertices.values()
 
     def remove_vertex(self, v):
-        '''remove o vértice v. Se o vertice não existir, não faz nada.'''
-        # remover todas as arestas de [v]
-        # remover todas as arestas com v noutros vertices
-        # remover o vértice v
+        if v in self._vertices:
+            for adj in list(self._vertices[v]):
+                self.remove_edge(v, adj)  # Aproveita o remove_edge para remover cada aresta conectada
+            del self._vertices[v]  # Agora remove o próprio vértice
 
-        if v in self._vertices.keys():
-            lst = [i for i in self._incident_edges(v)]
-            for i in lst:
-                x, y = i.endpoints()
-                self.remove_edges_list(x,y)
-            del self._vertices[v]
-            self._n -= 1
-
-    def remove_edges_list(self, u, v):
-
-        if self._vertices[u][v] is not None:
-
-            #Removendo do dicionário
-            del self._vertices[u][v]
-            del self._vertices[v][u]
-
-            #Removendo do set de pesquisa
-            for edge in self._edges:
-                if edge[0] == u.vertice() and edge[1] == v.vertice() or edge[0] == v.vertice() and edge[1] == u.vertice():
-                    self._edges.discard(edge)
-
-
-            self._n -= 1
-
+    def remove_edge(self, u, v):
+        """Remove a aresta entre u e v, se existir."""
+        self._vertices.get(u, {}).pop(v, None)
+        if not self._directed:
+            self._vertices.get(v, {}).pop(u, None)
 
     def has_neighbors(self, v):
-        if self._incident_edges(v) != None:
+
+        if self._incident_edges(v) is not None:
             return True
         else:
             return False
 
     def get_neighbors(self, v):
-        """ Retorna uma lista de vizinhos do vértice 'v'. """
-        if v in self._vertices:
-            return self._vertices[v].keys()  # Retorna uma lista de vértices vizinhos
-        return []  # Retorna uma lista vazia se não há vizinhos ou o vértice não existe
+        return self._vertices.get(v, {})
 
-
-
-    def printG(self):
-        '''Mostra o grafo por linhas'''
-        if self._n == 0:
-            print('O grafo está vazio!')
-        else:
-            print('Grafo orientado:', self._directed)
-            for v in self.vertices():
-                print('\nvertex ', v, ' grau_in: ', self.degree(v,False), end=' ')# mostra o grau (de saída se orientado)
-                for i in self._incident_edges(v):
-                    print(' ', i, end=' ')
+    def print_graph(self):
+        print('Grafo orientado:', self._directed)
+        for v in self.vertices:
+            print('\nvertex ', v, ' grau_in: ', self.degree(v), end=' ')
+            for i in self._incident_edges(v):
+                print(' ', i, end=' ')
 

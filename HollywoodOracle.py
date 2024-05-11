@@ -1,112 +1,117 @@
-import profile
 from collections import deque
 
-from Graph import Graph, Vertex
+from Graph import Graph
 
-# Tenta importar o decorador profile do memory_profiler, se não estiver disponível, define um que não faz nada
-try:
-    from memory_profiler import profile
-except ImportError:
-    def profile(func):
-        return func
+ACTOR = 0
+FILM = 1
 
 
 class HollywoodOracle:
 
-
     def __init__(self, filename):
 
         self._graph = FileManager.build_graph_from_file(filename)
-        # self._bfs_result = SearchAlgorithim.bfs(self._graph, Vertex("Fitz-Gerald, Lewis"))
+        self._bfs_result = SearchAlgorithim.bfs(self._graph, self._graph.get_vertex("Fitz-Gerald, Lewis"))
+
+    @property
+    def bfs_result(self):
+        return self._bfs_result
 
     def all_movies(self):
-        return self._graph._labels
+
+        movies = set()
+        for vertex in self._graph.vertices:
+            if vertex.vertex_type == FILM:
+                movies.add(vertex)
+        return movies
 
     def all_actors(self):
-        return self._graph._vertices
 
-    def movies_from(self, actor):
-        edges = self._graph._incident_edges(actor)
-        if edges is None:
-            return None
-        return self._graph.get_unique_labels(edges)
+        actors = set()
+        for vertex in self._graph.vertices:
+            if vertex.vertex_type == ACTOR:
+                actors.add(vertex)
+        return actors
 
-    def cast_of(self, movie):
+    def movies_from(self, actor_name):
 
-        edgesWithMovie = filter(lambda tupla: tupla[2] == movie, self._graph._edges)
+        actor = self._graph.get_vertex(actor_name)
+        return self._graph.get_neighbors(actor)
 
-        cast_of = set()
+    def cast_of(self, movie_name):
 
-        for edge in edgesWithMovie:
-            cast_of.add(edge[0])
-            cast_of.add(edge[1])
+        movie = self._graph.get_vertex(movie_name)
+        return self._graph.get_neighbors(movie)
 
-        return cast_of
+    def set_center_of_universe(self, actor_name):
 
-    def set_center_of_universe(self, actor):
+        actor = self._graph.get_vertex(actor_name)
         self._bfs_result = SearchAlgorithim.bfs(self._graph, actor)
 
-    def number_of_X(self, Actor):
-        if Actor in self._bfs_result:
-            return self._bfs_result[Actor][0]  # Retorna o caminho incluindo filmes
+    def number_of_x(self, actor_name):
+
+        actor = self._graph.get_vertex(actor_name)
+
+        if actor in self._bfs_result:
+            return self._bfs_result[actor][0]  # Retorna a distancia do centro do universo.
         else:
             return None  # Não há caminho se o ator não está conectado
 
-
     # Após executar o BFS, você pode extrair o caminho para qualquer ator
-    def path_to_X(self, actor):
+    def path_to_x(self, actor_name):
+
+        actor = self._graph.get_vertex(actor_name)
+
         if actor in self._bfs_result:
             return self._bfs_result[actor][1]  # Retorna o caminho incluindo filmes
         else:
             return None  # Não há caminho se o ator não está conectado
 
+
 # classe estática responsável por administrar o conteúdo dos DataSets
 
 class FileManager:
+        @staticmethod
+        def build_graph_from_file(filename):
+            graph = Graph(directed=True)  # Assumindo que o grafo é direcionado se necessário
+            try:
+                with open(filename, 'r', encoding='utf-8') as file:
+                    for line in file:
+                        parts = line.strip().split('/')
+                        if len(parts) < 2:
+                            continue  # Pula linhas sem dados suficientes
 
+                        movie_title = parts[0].strip()
+                        actors = [part.strip() for part in parts[1:]]
 
-    @staticmethod
-    @profile
-    def build_graph_from_file(filename):
-        graph = Graph()
-        vertex_map = {}  # Cache vertex objects to avoid duplicate creation
+                        # Insere ou obtém o vértice do filme
+                        movie_vertex = graph.insert_vertex(movie_title, FILM)
 
-        try:
-            with open(filename, 'r', encoding='utf-8') as file:
-                for line in file:
-                    parts = line.strip().split('/')
-                    if len(parts) < 2:
-                        continue
-                    movie = parts[0].strip()
-                    actors = set(part.strip() for part in parts[1:])
+                        # Processa cada ator listado para o filme
+                        for actor in actors:
 
-                    for actor in actors:
-                        if actor not in vertex_map:
-                            vertex_map[actor] = graph.insert_vertex(actor)
+                            actor_vertex = graph.insert_vertex(actor, ACTOR)
+                            graph.insert_edge(actor_vertex, movie_vertex), graph.insert_edge(movie_vertex, actor_vertex)
 
-                    actor_list = [vertex_map[actor] for actor in actors]
-                    for i in range(len(actor_list)):
-                        for j in range(i + 1, len(actor_list)):
-                            if not graph.has_especificEdge(actor_list[i], actor_list[j], movie):
-                                graph.insert_edge(actor_list[i], actor_list[j], movie)
-        except MemoryError:
-            print("Memory Error")
-
-        return graph
+            except MemoryError:
+                print("Memory Error")
+            return graph
 
 
 class SearchAlgorithim:
 
-    #Define por omissão "Bacon, Kevin", como centro do universo!
+    # Define por omissão "Bacon, Kevin", como centro do universo!
 
     @staticmethod
     def bfs(graph, start_vertex=None):
 
-        if not start_vertex:
-            start_vertex = Vertex("Bacon, Kevin")
+        # Se nenhum vértice inicial é fornecido, usa-se um padrão
+
+        if start_vertex is None:
+            start_vertex = graph.get_vertex("Kevin, Bacon")
 
         queue = deque([start_vertex])
-        visited = {start_vertex: (0, [(start_vertex, None)])}  # Inicia com distância 0 e caminho apenas com o ator inicial
+        visited = {start_vertex: (0, [start_vertex])}  # (distância, caminho até aqui)
 
         while queue:
 
@@ -114,9 +119,17 @@ class SearchAlgorithim:
             current_distance, path_to_here = visited[current_vertex]
 
             for neighbor in graph.get_neighbors(current_vertex):
+
                 if neighbor not in visited:
-                    visited[neighbor] = (current_distance + 1, path_to_here + [neighbor])
+
+                    if neighbor.vertex_type == FILM:
+                        new_distance = current_distance
+                    else:
+                        new_distance = current_distance + 1
+
+                    visited[neighbor] = (new_distance, path_to_here + [neighbor])
                     queue.append(neighbor)
 
         return visited
+
 
