@@ -58,7 +58,7 @@ print("\n")
 print("Max number of X: ", oracle.max_number_of_x())
 
 print("\n")
-print("Number of numbers X: ", oracle.count_number_of_x(7))
+print("Number of numbers X: ", oracle.count_number_of_x(6))
 
 print("\n")
 print("Average number of X: ", oracle.avarage_number_of_x())

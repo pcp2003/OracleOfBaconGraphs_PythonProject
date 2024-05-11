@@ -11,7 +11,7 @@ class HollywoodOracle:
     def __init__(self, filename):
 
         self._graph = FileManager.build_graph_from_file(filename)
-        self._bfs_result = SearchAlgorithim.bfs(self._graph, self._graph.get_vertex("Fitz-Gerald, Lewis"))
+        self._bfs_result = SearchAlgorithim.bfs(self._graph)
 
     @property
     def bfs_result(self):
@@ -75,7 +75,7 @@ class HollywoodOracle:
     def count_number_of_x(self, number):
         count = 0
         for chave, valor in self._bfs_result.items():
-            if valor[0] == number:
+            if valor[0] == number and chave.vertex_type == ACTOR:
                 count = count + 1
         return count
 
@@ -83,8 +83,9 @@ class HollywoodOracle:
         avarage = 0
         count = 0
         for chave, valor in self._bfs_result.items():
-            avarage = avarage + valor[0]
-            count = count + 1
+            if chave.vertex_type == ACTOR:
+                avarage = avarage + valor[0]
+                count = count + 1
         return avarage/count
 
 
