@@ -1,8 +1,3 @@
-
-from Graph import Graph, Vertex
-import random as rnd
-import string  # Importar para usar string.ascii_letters
-
 from HollywoodOracle import HollywoodOracle
 
 
@@ -43,21 +38,30 @@ for cast in castOfX:
 
 oracle.set_center_of_universe("Knez, Bruno")
 
-# print("\n")
-#
-# for distance in oracle.bfs_result:
-#     print(oracle.bfs_result[distance][0], ":", distance)
+print("\n")
+
+for distance in oracle.bfs_result:
+    print(oracle.bfs_result[distance][0], ":", distance)
 
 print("\n")
 print("Number of X: ", oracle.number_of_x("Sullivan, Fiona"))
 
-pathToX = oracle.path_to_x("Grandison, Pippa")
+pathToX = oracle.path_to_x("Akan, Tarik")
 
 print("\n")
 print("Path to Knez, Bruno: " )
 
 for path in pathToX:
     print(path)
+
+print("\n")
+print("Max number of X: ", oracle.max_number_of_x())
+
+print("\n")
+print("Number of numbers X: ", oracle.count_number_of_x(7))
+
+print("\n")
+print("Average number of X: ", oracle.avarage_number_of_x())
 
 
 

@@ -67,6 +67,28 @@ class HollywoodOracle:
         else:
             return None  # Não há caminho se o ator não está conectado
 
+    def max_number_of_x(self):
+
+        chave, valor = next(reversed(self._bfs_result.items()))
+        return valor[0]
+
+    def count_number_of_x(self, number):
+        count = 0
+        for chave, valor in self._bfs_result.items():
+            if valor[0] == number:
+                count = count + 1
+        return count
+
+    def avarage_number_of_x(self):
+        avarage = 0
+        count = 0
+        for chave, valor in self._bfs_result.items():
+            avarage = avarage + valor[0]
+            count = count + 1
+        return avarage/count
+
+
+
 
 # classe estática responsável por administrar o conteúdo dos DataSets
 
